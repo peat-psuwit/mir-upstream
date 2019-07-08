@@ -79,21 +79,17 @@ mgx::Platform::Platform(std::shared_ptr<::Display> const& conn,
                         std::shared_ptr<mg::DisplayReport> const& report)
     : x11_connection{conn},
       udev{std::make_shared<mir::udev::Context>()},
-      drm{mgm::helpers::DRMHelper::open_any_render_node(udev)},
       report{report},
-      gbm{drm->fd},
       output_sizes{output_sizes}
 {
     if (!x11_connection)
         BOOST_THROW_EXCEPTION(std::runtime_error("Need valid x11 display"));
-
-    auth_factory = std::make_unique<mgm::DRMNativePlatformAuthFactory>(*drm);
 }
 
 mir::UniqueModulePtr<mg::GraphicBufferAllocator> mgx::Platform::create_buffer_allocator(
-    mg::Display const& output)
+    mg::Display const& /*output*/)
 {
-    return make_module_ptr<mgm::BufferAllocator>(output, gbm.device, mgm::BypassOption::prohibited, mgm::BufferImportMethod::dma_buf);
+    BOOST_THROW_EXCEPTION(std::runtime_error("mgx::Platform::create_buffer_allocator() not implemented"));
 }
 
 mir::UniqueModulePtr<mg::Display> mgx::Platform::create_display(
@@ -105,12 +101,12 @@ mir::UniqueModulePtr<mg::Display> mgx::Platform::create_display(
 
 mg::NativeDisplayPlatform* mgx::Platform::native_display_platform()
 {
-    return auth_factory.get();
+    BOOST_THROW_EXCEPTION(std::runtime_error("mgx::Platform::native_display_platform() not implemented"));
 }
 
 mir::UniqueModulePtr<mg::PlatformIpcOperations> mgx::Platform::make_ipc_operations() const
 {
-    return make_module_ptr<mg::mesa::IpcOperations>(drm);
+    BOOST_THROW_EXCEPTION(std::runtime_error("mgx::Platform::make_ipc_operations() not implemented"));
 }
 
 mg::NativeRenderingPlatform* mgx::Platform::native_rendering_platform()

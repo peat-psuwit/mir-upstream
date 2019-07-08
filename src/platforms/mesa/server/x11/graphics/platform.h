@@ -66,11 +66,8 @@ public:
 private:
     std::shared_ptr<::Display> const x11_connection;
     std::shared_ptr<mir::udev::Context> udev;
-    std::shared_ptr<mesa::helpers::DRMHelper> const drm;
     std::shared_ptr<DisplayReport> const report;
-    mesa::helpers::GBMHelper gbm;
     std::vector<mir::geometry::Size> const output_sizes;
-    std::unique_ptr<mesa::DRMNativePlatformAuthFactory> auth_factory;
 };
 
 }

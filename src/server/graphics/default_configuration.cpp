@@ -243,9 +243,7 @@ mir::DefaultServerConfiguration::the_cursor()
             else
             {
                 mir::log_info("Using software cursor");
-                primary_cursor = std::make_shared<mg::SoftwareCursor>(
-                    the_buffer_allocator(),
-                    the_input_scene());
+                primary_cursor = std::make_shared<mg::NullCursor>();
             }
 
             primary_cursor->show(*the_default_cursor_image());
