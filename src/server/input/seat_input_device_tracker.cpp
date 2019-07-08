@@ -188,7 +188,7 @@ void mi::SeatInputDeviceTracker::update_spots()
     for (auto const& dev : device_data)
         spots.insert(end(spots), begin(dev.second.spots), end(dev.second.spots));
 
-    touch_visualizer->visualize_touches(spots);
+    // touch_visualizer->visualize_touches(spots);
 }
 
 void mi::SeatInputDeviceTracker::update_states()

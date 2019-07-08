@@ -172,6 +172,8 @@ mir::DefaultServerConfiguration::wrap_cursor_listener(
 std::shared_ptr<mi::TouchVisualizer>
 mir::DefaultServerConfiguration::the_touch_visualizer()
 {
+    return nullptr;
+    /*
     return touch_visualizer(
         [this]() -> std::shared_ptr<mi::TouchVisualizer>
         {
@@ -188,6 +190,7 @@ mir::DefaultServerConfiguration::the_touch_visualizer()
             
             return visualizer;
         });
+    */
 }
 
 std::shared_ptr<mg::CursorImage>
