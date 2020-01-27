@@ -535,6 +535,7 @@ void mf::XWaylandSurface::set_window_state(WindowState const& new_window_state)
         mir_window_state = mir_window_state_restored;
 
     bool update_mir_window_state = false;
+    std::shared_ptr<scene::Surface> scene_surface;
 
     {
         std::lock_guard<std::mutex> lock{mutex};
@@ -546,16 +547,15 @@ void mf::XWaylandSurface::set_window_state(WindowState const& new_window_state)
             update_mir_window_state = true;
             cached_mir_window_state = mir_window_state;
         }
+
+        scene_surface = weak_scene_surface.lock();
     }
 
-    if (update_mir_window_state)
+    if (update_mir_window_state && scene_surface)
     {
-        if (auto const scene_surface = weak_scene_surface.lock())
-        {
-            shell::SurfaceSpecification mods;
-            mods.state = mir_window_state;
-            shell->modify_surface(scene_surface->session().lock(), scene_surface, mods);
-        }
+        shell::SurfaceSpecification mods;
+        mods.state = mir_window_state;
+        shell->modify_surface(scene_surface->session().lock(), scene_surface, mods);
     }
 }
 
