@@ -122,6 +122,10 @@ namespace shell
 {
 class Shell;
 }
+namespace scene
+{
+class SurfaceCreationParameters;
+}
 namespace frontend
 {
 class WlSeat;
@@ -174,7 +178,7 @@ private:
     /// Should only be called on the Wayland thread
     /// @{
     void wl_surface_destroyed() override;
-    void wl_surface_committed(WlSurface* wl_surface) override;
+    void wl_surface_committed() override;
     auto scene_surface() const -> std::experimental::optional<std::shared_ptr<scene::Surface>> override;
     /// @}
 
@@ -182,10 +186,9 @@ private:
     /// Prevents requesting a window state that we are already in
     MirWindowState cached_mir_window_state{mir_window_state_unknown};
 
-    /// Should only be called on the Wayland thread
     /// Should NOT be called under lock
     /// Does nothing if we already have a scene::Surface
-    void create_scene_surface_if_needed(WlSurface* wl_surface);
+    void create_scene_surface_if_needed();
 
     /// Sets the window's _NET_WM_STATE property based on the contents of window_state
     /// Also sets the state of the scene surface to match window_state
@@ -202,6 +205,14 @@ private:
     xcb_window_t const window;
 
     std::mutex mutable mutex;
+
+    /// Objects set in set_surface() and used for surface creation
+    /// @{
+    std::weak_ptr<scene::Session> weak_session;
+    std::experimental::optional<std::shared_ptr<XWaylandSurfaceObserver>> surface_observer;
+    /// Cleared after surface created
+    std::experimental::optional<std::unique_ptr<scene::SurfaceCreationParameters>> creation_params;
+    /// @}
 
     /// Reflects the _NET_WM_STATE and WM_STATE we have currently set on the window
     /// Should only be modified by set_wm_state()
@@ -223,10 +234,6 @@ private:
         bool override_redirect;
     } const init;
 
-    std::experimental::optional<std::shared_ptr<XWaylandSurfaceObserver>> surface_observer;
-
-    /// Only true when we are in the process of creating a scene surface
-    bool creating_scene_surface{false};
     std::weak_ptr<scene::Surface> weak_scene_surface;
 };
 } /* frontend */

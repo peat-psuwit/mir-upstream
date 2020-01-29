@@ -237,11 +237,31 @@ void mf::XWaylandSurface::dirty_properties()
 void mf::XWaylandSurface::set_surface(WlSurface* wl_surface)
 {
     // We assume we are on the Wayland thread
+
+    auto const observer = std::make_shared<XWaylandSurfaceObserver>(seat, wl_surface, this);
+
+    {
+        std::lock_guard<std::mutex> lock{mutex};
+
+        if (surface_observer || weak_session.lock())
+            BOOST_THROW_EXCEPTION(std::runtime_error("XWaylandSurface::set_surface() called multiple times"));
+
+        surface_observer = observer;
+
+        weak_session = get_session(wl_surface->resource);
+
+        creation_params = std::make_unique<scene::SurfaceCreationParameters>();
+        creation_params.value()->streams = std::vector<shell::StreamSpecification>{};
+        creation_params.value()->input_shape = std::vector<geom::Rectangle>{};
+        wl_surface->populate_surface_data(
+            creation_params.value()->streams.value(),
+            creation_params.value()->input_shape.value(),
+            {});
+    }
+
     // If a buffer has alread been committed, we need to create the scene::Surface without waiting for next commit
     if (wl_surface->buffer_size())
-    {
-        create_scene_surface_if_needed(wl_surface);
-    }
+        create_scene_surface_if_needed();
 }
 
 void mf::XWaylandSurface::set_workspace(int workspace)
@@ -441,9 +461,9 @@ void mf::XWaylandSurface::wl_surface_destroyed()
     close();
 }
 
-void mf::XWaylandSurface::wl_surface_committed(WlSurface* wl_surface)
+void mf::XWaylandSurface::wl_surface_committed()
 {
-    create_scene_surface_if_needed(wl_surface);
+    create_scene_surface_if_needed();
 }
 
 auto mf::XWaylandSurface::scene_surface() const -> std::experimental::optional<std::shared_ptr<scene::Surface>>
@@ -455,39 +475,45 @@ auto mf::XWaylandSurface::scene_surface() const -> std::experimental::optional<s
         return std::experimental::nullopt;
 }
 
-void mf::XWaylandSurface::create_scene_surface_if_needed(WlSurface* wl_surface)
+void mf::XWaylandSurface::create_scene_surface_if_needed()
 {
     scene::SurfaceCreationParameters params;
+    std::shared_ptr<scene::SurfaceObserver> observer;
+    std::shared_ptr<scene::Session> session;
 
     {
         std::lock_guard<std::mutex> lock{mutex};
 
-        if (creating_scene_surface || weak_scene_surface.lock())
-            return;
+        session = weak_session.lock();
 
-        creating_scene_surface = true;
+        if (weak_scene_surface.lock() ||
+            !creation_params ||
+            !surface_observer ||
+            !session)
+        {
+            // surface is already created, being created or not ready to be created
+            return;
+        }
+
+        observer = surface_observer.value();
+
+        params = std::move(*creation_params.value());
+        creation_params = std::experimental::nullopt;
 
         params.type = mir_window_type_freestyle;
         if (!properties.title.empty())
             params.name = properties.title;
         if (!properties.appId.empty())
             params.application_id = properties.appId;
-        params.size = wl_surface->buffer_size().value_or(init.size);
+        params.size = init.size;
         params.server_side_decorated = true;
     }
 
-    params.streams = std::vector<shell::StreamSpecification>{};
-    params.input_shape = std::vector<geom::Rectangle>{};
-    wl_surface->populate_surface_data(params.streams.value(), params.input_shape.value(), {});
-
-    auto const observer = std::make_shared<XWaylandSurfaceObserver>(seat, wl_surface, this);
-    auto const surface = shell->create_surface(get_session(wl_surface->resource), params, observer);
+    auto const surface = shell->create_surface(session, params, observer);
 
     {
         std::lock_guard<std::mutex> lock{mutex};
-        surface_observer = observer;
         weak_scene_surface = surface;
-        creating_scene_surface = false;
     }
 }
 
