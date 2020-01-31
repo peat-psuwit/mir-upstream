@@ -98,12 +98,16 @@ mf::XWaylandSurface::~XWaylandSurface()
 
 void mf::XWaylandSurface::map()
 {
+    std::shared_ptr<scene::Surface> scene_surface;
     WindowState state;
     {
         std::lock_guard<std::mutex> lock{mutex};
+        scene_surface = weak_scene_surface.lock();
         state = window_state;
     }
     state.withdrawn = false;
+    if (scene_surface)
+        state = state.updated_from(scene_surface->state());
     inform_client_of_window_state(state);
 }
 
