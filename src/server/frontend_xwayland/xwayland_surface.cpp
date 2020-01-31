@@ -98,7 +98,13 @@ mf::XWaylandSurface::~XWaylandSurface()
 
 void mf::XWaylandSurface::map()
 {
-    scene_surface_state_set(mir_window_state_restored); // TODO: use the real window state
+    WindowState state;
+    {
+        std::lock_guard<std::mutex> lock{mutex};
+        state = window_state;
+    }
+    state.withdrawn = false;
+    set_window_state(state);
 }
 
 void mf::XWaylandSurface::close()
@@ -283,13 +289,13 @@ void mf::XWaylandSurface::set_workspace(int workspace)
 
 void mf::XWaylandSurface::unmap()
 {
-    uint32_t const wm_state_properties[]{
-        static_cast<uint32_t>(WmState::WITHDRAWN),
-        XCB_WINDOW_NONE // Icon window
-    };
-    connection->set_property<XCBType::WM_STATE>(window, connection->wm_state, wm_state_properties);
-    connection->delete_property(window, connection->net_wm_state);
-    connection->flush();
+    WindowState state;
+    {
+        std::lock_guard<std::mutex> lock{mutex};
+        state = window_state;
+    }
+    state.withdrawn = true;
+    set_window_state(state);
 }
 
 void mf::XWaylandSurface::read_properties()
