@@ -153,7 +153,6 @@ public:
     void read_properties();
     void set_surface(WlSurface* wl_surface); ///< Should only be called on the Wayland thread
     void set_workspace(int workspace);
-    void unmap();
     void move_resize(uint32_t detail);
 
 private:
