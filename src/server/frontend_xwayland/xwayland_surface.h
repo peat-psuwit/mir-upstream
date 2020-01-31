@@ -161,6 +161,7 @@ private:
     /// (for example if a minimized window would otherwise be maximized)
     struct WindowState
     {
+        bool withdrawn{false};
         bool minimized{false};
         bool maximized{false};
         bool fullscreen{false};

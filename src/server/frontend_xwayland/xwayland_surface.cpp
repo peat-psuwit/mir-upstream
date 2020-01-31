@@ -519,10 +519,14 @@ void mf::XWaylandSurface::create_scene_surface_if_needed()
 
 void mf::XWaylandSurface::set_window_state(WindowState const& new_window_state)
 {
-    WmState const wm_state{
-        new_window_state.minimized ?
-        WmState::ICONIC :
-        WmState::NORMAL};
+    WmState wm_state;
+
+    if (new_window_state.withdrawn)
+        wm_state = WmState::WITHDRAWN;
+    else if (new_window_state.minimized)
+        wm_state = WmState::ICONIC;
+    else
+        wm_state = WmState::NORMAL;
 
     uint32_t const wm_state_properties[]{
         static_cast<uint32_t>(wm_state),
@@ -530,27 +534,39 @@ void mf::XWaylandSurface::set_window_state(WindowState const& new_window_state)
     };
     connection->set_property<XCBType::WM_STATE>(window, connection->wm_state, wm_state_properties);
 
-    std::vector<xcb_atom_t> net_wm_states;
+    if (new_window_state.withdrawn)
+    {
+        xcb_delete_property(
+            *connection,
+            window,
+            connection->net_wm_state);
+    }
+    else
+    {
+        std::vector<xcb_atom_t> net_wm_states;
 
-    if (new_window_state.minimized)
-    {
-        net_wm_states.push_back(connection->net_wm_state_hidden);
-    }
-    if (new_window_state.maximized)
-    {
-        net_wm_states.push_back(connection->net_wm_state_maximized_horz);
-        net_wm_states.push_back(connection->net_wm_state_maximized_vert);
-    }
-    if (new_window_state.fullscreen)
-    {
-        net_wm_states.push_back(connection->net_wm_state_fullscreen);
-    }
-    // TODO: Set _NET_WM_STATE_MODAL if appropriate
+        if (new_window_state.minimized)
+        {
+            net_wm_states.push_back(connection->net_wm_state_hidden);
+        }
+        if (new_window_state.maximized)
+        {
+            net_wm_states.push_back(connection->net_wm_state_maximized_horz);
+            net_wm_states.push_back(connection->net_wm_state_maximized_vert);
+        }
+        if (new_window_state.fullscreen)
+        {
+            net_wm_states.push_back(connection->net_wm_state_fullscreen);
+        }
+        // TODO: Set _NET_WM_STATE_MODAL if appropriate
 
-    connection->set_property<XCBType::ATOM>(window, connection->net_wm_state, net_wm_states);
+        connection->set_property<XCBType::ATOM>(window, connection->net_wm_state, net_wm_states);
+    }
 
     MirWindowState mir_window_state;
 
+    if (new_window_state.withdrawn)
+        mir_window_state = mir_window_state_hidden;
     if (new_window_state.minimized)
         mir_window_state = mir_window_state_minimized;
     else if (new_window_state.fullscreen)
