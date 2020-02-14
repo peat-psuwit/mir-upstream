@@ -279,16 +279,10 @@ auto mf::XWaylandWM::get_wm_surface(
         return surface->second;
 }
 
-auto mf::XWaylandWM::get_focused_wm_surface() -> std::experimental::optional<std::shared_ptr<XWaylandSurface>>
+auto mf::XWaylandWM::get_focused_window() -> std::experimental::optional<xcb_window_t>
 {
     std::lock_guard<std::mutex> lock{mutex};
-    if (focused_window)
-    {
-        auto const surface = surfaces.find(focused_window.value());
-        if (surface != surfaces.end() && surface->second)
-            return surface->second;
-    }
-    return std::experimental::nullopt;
+    return focused_window;
 }
 
 void mf::XWaylandWM::set_focus(xcb_window_t xcb_window, bool should_be_focused)
