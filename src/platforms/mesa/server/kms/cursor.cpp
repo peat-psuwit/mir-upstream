@@ -388,14 +388,28 @@ void mgm::Cursor::place_cursor_at_locked(
 
         if (output_rect.contains(position))
         {
-            auto dp = transform(output_rect, position - output_rect.top_left, orientation);
-            auto hs = transform(geom::Rectangle{{0,0}, size}, hotspot, orientation);
+            auto const relative_to_extants = position - output_rect.top_left;
+
+            auto const normalized_vec =
+                glm::vec2{relative_to_extants.dx.as_int(), relative_to_extants.dy.as_int()} /
+                glm::vec2{output_rect.size.width.as_int(), output_rect.size.height.as_int()} *
+                2.0f - glm::vec2{1};
+
+            auto const transformed_vec = normalized_vec * conf.transformation();
+
+            auto const output_space_vec = (transformed_vec + glm::vec2{1}) / 2.0f *
+                glm::vec2{output.size().width.as_int(), output.size().height.as_int()};
+
+            auto const position_on_output = geom::Point{output_space_vec.x, output_space_vec.y};
+
+            //geom::Point const hotspot_position_on_output = transform(output_rect, position - output_rect.top_left, orientation);
+            auto const hotspot_displacement = transform(geom::Rectangle{{}, size}, hotspot, orientation);
 
             // It's a little strange that we implement hotspot this way as there is
             // drmModeSetCursor2 with hotspot support. However it appears to not actually
             // work on radeon and intel. There also seems to be precedent in weston for
             // implementing hotspot in this fashion.
-            output.move_cursor(geom::Point{} + dp - hs);
+            output.move_cursor(position_on_output - hotspot_displacement);
             auto& buffer = buffer_for_output(output);
 
             auto const changed_orientation = buffer.change_orientation(orientation);
