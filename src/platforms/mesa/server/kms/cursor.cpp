@@ -400,7 +400,7 @@ void mgm::Cursor::place_cursor_at_locked(
             auto const output_space_vec = (transformed_vec + glm::vec2{1}) / 2.0f *
                 glm::vec2{output.size().width.as_int(), output.size().height.as_int()};
 
-            auto const position_on_output = geom::Point{output_space_vec.x, output_space_vec.y};
+            auto const position_on_output = geom::Point{roundf(output_space_vec.x), roundf(output_space_vec.y)};
 
             //geom::Point const hotspot_position_on_output = transform(output_rect, position - output_rect.top_left, orientation);
             auto const hotspot_displacement = transform(geom::Rectangle{{}, size}, hotspot, orientation);
